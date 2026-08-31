@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Your notes</h1>
+
+<form method="get">
+  <input name="q" placeholder="Search notes..." value="{{ search }}">
+  <button type="submit">Search</button>
+</form>
+
+<form method="post">
+  <input name="title" placeholder="Title" required>
+  <textarea name="body" placeholder="Write a note..." required></textarea>
+  <button type="submit">Add note</button>
+</form>
+
+<ul>
+  {% for note in notes %}
+    <li>
+      <strong>{{ note['title'] }}</strong><br>
+      {{ note['body'] | safe }}  {# VULN: disables Jinja2's auto-escaping — XSS #}
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

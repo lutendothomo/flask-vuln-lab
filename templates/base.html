@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><title>Notes</title></head>
+<body>
+  <nav>
+    {% if session.get('username') %}
+      Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Log out</a>
+    {% endif %}
+  </nav>
+  <hr>
+  {% block content %}{% endblock %}
+</body>
+</html>
