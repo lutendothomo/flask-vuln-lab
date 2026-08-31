@@ -1,13 +1,19 @@
 <!doctype html>
 <html>
-<head><title>Notes</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>Notes</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
   <nav>
+    <span>flask-vuln-lab</span>
     {% if session.get('username') %}
-      Logged in as {{ session['username'] }} | <a href="{{ url_for('logout') }}">Log out</a>
+      <span>{{ session['username'] }} &middot; <a href="{{ url_for('logout') }}">Log out</a></span>
     {% endif %}
   </nav>
-  <hr>
-  {% block content %}{% endblock %}
+  <div class="wrap">
+    {% block content %}{% endblock %}
+  </div>
 </body>
 </html>
