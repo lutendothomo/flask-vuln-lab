@@ -6,7 +6,6 @@ app.secret_key = "dev"  # VULN: hardcoded secret key — fix with an env var lat
 
 DB_PATH = "vuln.db"
 
-
 def get_db():
     db = getattr(g, "_database", None)
     if db is None:
