@@ -68,9 +68,10 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         db = get_db()
-        # VULN: raw string formatting in a SQL query — classic SQL injection
-        query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-        user = db.execute(query).fetchone()
+        # FIX: parameterized query — closes the SQL injection that lived here
+        user = db.execute(
+            "SELECT * FROM users WHERE username = ? AND password = ?", (username, password)
+        ).fetchone()
         if user:
             session["user_id"] = user["id"]
             session["username"] = user["username"]
