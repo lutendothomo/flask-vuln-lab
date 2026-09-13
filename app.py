@@ -101,9 +101,11 @@ def notes():
 
     search = request.args.get("q", "")
     if search:
-        # VULN: SQL injection via the search box — raw string interpolation
-        query = f"SELECT * FROM notes WHERE user_id = {session['user_id']} AND title LIKE '%{search}%'"
-        all_notes = db.execute(query).fetchall()
+        like_pattern = f"%{search}%"
+        all_notes = db.execute(
+            "SELECT * FROM notes WHERE user_id = ? AND title LIKE ?",
+            (session["user_id"], like_pattern),
+        ).fetchall()
     else:
         all_notes = db.execute(
             "SELECT * FROM notes WHERE user_id = ?", (session["user_id"],)
