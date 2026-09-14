@@ -18,7 +18,7 @@
     {% for note in notes %}
       <li class="note">
         <strong>{{ note['title'] }}</strong>
-        {{ note['body'] | safe }}
+        {{ note['body'] }}
       </li>
     {% endfor %}
   </ul>
