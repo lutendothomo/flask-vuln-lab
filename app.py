@@ -1,8 +1,13 @@
 import sqlite3
 from flask import Flask, request, render_template, redirect, url_for, session, g
+from flask_wtf import CSRFProtect
 
 app = Flask(__name__)
 app.secret_key = "dev"  # VULN: hardcoded secret key — fix with an env var later
+
+# FIX: CSRF protection enabled globally — forms must now include a valid
+# csrf_token or their POST requests will be rejected with a 400 error.
+csrf = CSRFProtect(app)
 
 DB_PATH = "vuln.db"
 
