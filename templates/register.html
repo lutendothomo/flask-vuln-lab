@@ -1,4 +1,3 @@
-﻿```html
 {% extends "base.html" %}
 
 {% block content %}
@@ -55,31 +54,3 @@
   </p>
 </div>
 {% endblock %}
-```
-
-### What is now enforced?
-
-The browser will reject passwords that don't satisfy **all** of these:
-
-```text
-* 5–64 characters
-*Uppercase letter (A-Z)
-* Lowercase letter (a-z)
-* Number (0-9)
-* Special character
-* No spaces
-```
-
-For example:
-
-```text
-Password1!     → ✓
-Nari@2026      → ✓
-password1!     → ✗
-PASSWORD1!     → ✗
-Password!      → ✗
-Password123    → ✗
-Pass 123!      → ✗
-Ab1!           → ✗
-```
-
