@@ -1,4 +1,6 @@
-﻿{% extends "base.html" %}
+﻿```html
+{% extends "base.html" %}
+
 {% block content %}
 <div class="card">
   <h1>Register</h1>
@@ -10,6 +12,7 @@
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
+    <!-- Username -->
     <input name="username"
            placeholder="Username"
            value="{{ username or '' }}"
@@ -20,14 +23,18 @@
            autocomplete="username"
            required>
 
+    <!-- Password -->
     <input name="password"
            type="password"
            placeholder="Password"
            minlength="5"
            maxlength="64"
+           pattern="^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])[^\s]{5,64}$"
+           title="Password must be 5-64 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character. Spaces are not allowed."
            autocomplete="new-password"
            required>
 
+    <!-- Password requirements -->
     <p class="hint">Password requirements:</p>
 
     <ul class="hint">
@@ -36,7 +43,7 @@
       <li>At least one lowercase letter</li>
       <li>At least one number</li>
       <li>At least one special character</li>
-      <li>Spaces don't count as special characters</li>
+      <li>Spaces are not allowed</li>
     </ul>
 
     <button type="submit">Register</button>
@@ -48,3 +55,31 @@
   </p>
 </div>
 {% endblock %}
+```
+
+### What is now enforced?
+
+The browser will reject passwords that don't satisfy **all** of these:
+
+```text
+* 5–64 characters
+*Uppercase letter (A-Z)
+* Lowercase letter (a-z)
+* Number (0-9)
+* Special character
+* No spaces
+```
+
+For example:
+
+```text
+Password1!     → ✓
+Nari@2026      → ✓
+password1!     → ✗
+PASSWORD1!     → ✗
+Password!      → ✗
+Password123    → ✗
+Pass 123!      → ✗
+Ab1!           → ✗
+```
+

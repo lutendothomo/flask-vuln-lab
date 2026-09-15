@@ -32,6 +32,15 @@ def validate_password(password):
 
 
 app = Flask(__name__)
+
+# FIX: harden session cookie settings. SECURE is tied to whether SECRET_KEY
+# is set via env var, so it's off for local dev (plain HTTP) and on once
+# deployed with a real secret key (which implies HTTPS in front of it).
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SECRET_KEY") is not None,
+)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-fallback-do-not-use-in-production")
 
 # FIX: CSRF protection enabled globally — forms must now include a valid
@@ -40,6 +49,16 @@ csrf = CSRFProtect(app)
 
 # FIX: rate limiting on login to slow down brute-force attempts.
 limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
+
+
+# FIX: basic security headers on every response.
+@app.after_request
+def set_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
 
 DB_PATH = "vuln.db"
 
@@ -68,11 +87,15 @@ def init_db():
         )
     """)
     db.execute("""
-        CREATE TABLE IF NOT EXISTS notes (
+        CREATE TABLE IF NOT EXISTS bookings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            body TEXT NOT NULL
+            client_name TEXT NOT NULL,
+            pickup_location TEXT NOT NULL,
+            delivery_location TEXT NOT NULL,
+            notes TEXT,
+            payment_status TEXT NOT NULL DEFAULT 'Pending',
+            delivery_status TEXT NOT NULL DEFAULT 'Pending Dispatch'
         )
     """)
     db.commit()
@@ -83,7 +106,7 @@ def init_db():
 def home():
     if "user_id" not in session:
         return redirect(url_for("login"))
-    return redirect(url_for("notes"))
+    return redirect(url_for("bookings"))
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -122,7 +145,7 @@ def login():
         if user and check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            return redirect(url_for("notes"))
+            return redirect(url_for("bookings"))
         return render_template("login.html", error="Invalid credentials")
     return render_template("login.html")
 
@@ -133,33 +156,61 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/notes", methods=["GET", "POST"])
-def notes():
+PAYMENT_STATUSES = ["Pending", "Paid", "Refunded"]
+DELIVERY_STATUSES = ["Pending Dispatch", "In Transit", "Delivered", "Delayed"]
+
+
+@app.route("/bookings", methods=["GET", "POST"])
+def bookings():
     if "user_id" not in session:
         return redirect(url_for("login"))
     db = get_db()
 
     if request.method == "POST":
-        # VULN: no CSRF token on this form — add flask-wtf protection later
-        title = request.form["title"]
-        body = request.form["body"]
-        db.execute("INSERT INTO notes (user_id, title, body) VALUES (?, ?, ?)",
-                   (session["user_id"], title, body))
+        client_name = request.form["client_name"].strip()
+        pickup_location = request.form["pickup_location"].strip()
+        delivery_location = request.form["delivery_location"].strip()
+        notes = request.form.get("notes", "").strip()
+        db.execute(
+            """INSERT INTO bookings
+               (user_id, client_name, pickup_location, delivery_location, notes, payment_status, delivery_status)
+               VALUES (?, ?, ?, ?, ?, 'Pending', 'Pending Dispatch')""",
+            (session["user_id"], client_name, pickup_location, delivery_location, notes),
+        )
         db.commit()
 
     search = request.args.get("q", "")
     if search:
         like_pattern = f"%{search}%"
-        all_notes = db.execute(
-            "SELECT * FROM notes WHERE user_id = ? AND title LIKE ?",
+        all_bookings = db.execute(
+            "SELECT * FROM bookings WHERE user_id = ? AND client_name LIKE ?",
             (session["user_id"], like_pattern),
         ).fetchall()
     else:
-        all_notes = db.execute(
-            "SELECT * FROM notes WHERE user_id = ?", (session["user_id"],)
+        all_bookings = db.execute(
+            "SELECT * FROM bookings WHERE user_id = ?", (session["user_id"],)
         ).fetchall()
 
-    return render_template("notes.html", notes=all_notes, username=session["username"], search=search)
+    return render_template("bookings.html", bookings=all_bookings, username=session["username"], search=search)
+
+
+@app.route("/bookings/<int:booking_id>/status", methods=["POST"])
+def update_status(booking_id):
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+    payment_status = request.form.get("payment_status", "")
+    delivery_status = request.form.get("delivery_status", "")
+    if payment_status not in PAYMENT_STATUSES or delivery_status not in DELIVERY_STATUSES:
+        return redirect(url_for("bookings"))
+    db = get_db()
+    # Ownership check (user_id = ?) stays even here — a user can only
+    # update their own bookings, never someone else's by guessing an id.
+    db.execute(
+        "UPDATE bookings SET payment_status = ?, delivery_status = ? WHERE id = ? AND user_id = ?",
+        (payment_status, delivery_status, booking_id, session["user_id"]),
+    )
+    db.commit()
+    return redirect(url_for("bookings"))
 
 
 if __name__ == "__main__":
