@@ -1,13 +1,50 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block content %}
 <div class="card">
   <h1>Register</h1>
+
+  {% if error %}
+    <div class="error">{{ error }}</div>
+  {% endif %}
+
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input name="username" placeholder="Username" required>
-    <input name="password" type="password" placeholder="Password" required>
+
+    <input name="username"
+           placeholder="Username"
+           value="{{ username or '' }}"
+           minlength="3"
+           maxlength="20"
+           pattern="[A-Za-z][A-Za-z0-9_.]{2,19}"
+           title="3-20 characters, start with a letter, letters/numbers/underscore/period only"
+           autocomplete="username"
+           required>
+
+    <input name="password"
+           type="password"
+           placeholder="Password"
+           minlength="5"
+           maxlength="64"
+           autocomplete="new-password"
+           required>
+
+    <p class="hint">Password requirements:</p>
+
+    <ul class="hint">
+      <li>5-64 characters</li>
+      <li>At least one uppercase letter</li>
+      <li>At least one lowercase letter</li>
+      <li>At least one number</li>
+      <li>At least one special character</li>
+      <li>Spaces don't count as special characters</li>
+    </ul>
+
     <button type="submit">Register</button>
   </form>
-  <p class="hint">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+
+  <p class="hint">
+    Already have an account?
+    <a href="{{ url_for('login') }}">Log in</a>
+  </p>
 </div>
 {% endblock %}

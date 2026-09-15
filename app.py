@@ -1,10 +1,35 @@
 import os
+import re
 import sqlite3
 from flask import Flask, request, render_template, redirect, url_for, session, g
 from flask_wtf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
+
+USERNAME_PATTERN = re.compile(r'^[A-Za-z][A-Za-z0-9_.]{2,19}$')
+
+
+def validate_username(username):
+    if not USERNAME_PATTERN.match(username):
+        return ("Username must be 3-20 characters, start with a letter, and contain "
+                "only letters, numbers, underscores, or periods.")
+    return None
+
+
+def validate_password(password):
+    if not (5 <= len(password) <= 64):
+        return "Password must be between 5 and 64 characters."
+    if not re.search(r'[a-z]', password):
+        return "Password must include at least one lowercase letter."
+    if not re.search(r'[A-Z]', password):
+        return "Password must include at least one uppercase letter."
+    if not re.search(r'\d', password):
+        return "Password must include at least one number."
+    if not re.search(r'[^A-Za-z0-9\s]', password):
+        return "Password must include at least one special character (a space doesn't count)."
+    return None
+
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-fallback-do-not-use-in-production")
@@ -64,13 +89,21 @@ def home():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
+        username = request.form["username"].strip()
         password = request.form["password"]
-        # FIX: hash the password before it's ever stored
+
+        error = validate_username(username) or validate_password(password)
+        if error:
+            return render_template("register.html", error=error, username=username)
+
         hashed = generate_password_hash(password)
         db = get_db()
-        db.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
-        db.commit()
+        try:
+            db.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
+            db.commit()
+        except sqlite3.IntegrityError:
+            return render_template("register.html", error="That username is already taken.", username=username)
+
         return redirect(url_for("login"))
     return render_template("register.html")
 
