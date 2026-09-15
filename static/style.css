@@ -151,9 +151,9 @@ button:hover { background: var(--accent-dark); }
 }
 .badge.pending { background: #f3e2dd; color: #b3402f; }
 .badge.paid { background: #e3f0e8; color: #2f6b4c; }
-.badge.transit { background: #dde8f0; color: #2c5580; }
-.badge.delivered { background: #e3f0e8; color: #2f6b4c; }
-.badge.delayed { background: #f3e2dd; color: #b3402f; }
+.badge.transit { background: #dde8f0; color: #256fbd; }
+.badge.delivered { background: #e3f0e8; color: #51896c; }
+.badge.delayed { background: #f3e2dd; color: #64d7d3; }
 
 .status-form { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.6rem; flex-wrap: wrap; }
 .status-form select { padding: 0.35rem 0.5rem; font-size: 0.8rem; }

@@ -160,24 +160,39 @@ PAYMENT_STATUSES = ["Pending", "Paid", "Refunded"]
 DELIVERY_STATUSES = ["Pending Dispatch", "In Transit", "Delivered", "Delayed"]
 
 
+def validate_booking_fields(client_name, pickup_location, delivery_location, notes):
+    if not client_name or len(client_name) > 100:
+        return "Client name is required and must be 100 characters or fewer."
+    if not pickup_location or len(pickup_location) > 200:
+        return "Pickup location is required and must be 200 characters or fewer."
+    if not delivery_location or len(delivery_location) > 200:
+        return "Delivery location is required and must be 200 characters or fewer."
+    if len(notes) > 500:
+        return "Booking notes must be 500 characters or fewer."
+    return None
+
+
 @app.route("/bookings", methods=["GET", "POST"])
 def bookings():
     if "user_id" not in session:
         return redirect(url_for("login"))
     db = get_db()
 
+    error = None
     if request.method == "POST":
         client_name = request.form["client_name"].strip()
         pickup_location = request.form["pickup_location"].strip()
         delivery_location = request.form["delivery_location"].strip()
         notes = request.form.get("notes", "").strip()
-        db.execute(
-            """INSERT INTO bookings
-               (user_id, client_name, pickup_location, delivery_location, notes, payment_status, delivery_status)
-               VALUES (?, ?, ?, ?, ?, 'Pending', 'Pending Dispatch')""",
-            (session["user_id"], client_name, pickup_location, delivery_location, notes),
-        )
-        db.commit()
+        error = validate_booking_fields(client_name, pickup_location, delivery_location, notes)
+        if not error:
+            db.execute(
+                """INSERT INTO bookings
+                   (user_id, client_name, pickup_location, delivery_location, notes, payment_status, delivery_status)
+                   VALUES (?, ?, ?, ?, ?, 'Pending', 'Pending Dispatch')""",
+                (session["user_id"], client_name, pickup_location, delivery_location, notes),
+            )
+            db.commit()
 
     search = request.args.get("q", "")
     if search:
@@ -191,7 +206,9 @@ def bookings():
             "SELECT * FROM bookings WHERE user_id = ?", (session["user_id"],)
         ).fetchall()
 
-    return render_template("bookings.html", bookings=all_bookings, username=session["username"], search=search)
+    return render_template(
+        "bookings.html", bookings=all_bookings, username=session["username"], search=search, error=error
+    )
 
 
 @app.route("/bookings/<int:booking_id>/status", methods=["POST"])
@@ -213,6 +230,14 @@ def update_status(booking_id):
     return redirect(url_for("bookings"))
 
 
+def is_debug_mode():
+    # FIX (vuln #8): debug mode must be explicitly opted into via an env
+    # var, never hardcoded True. Flask's debug mode exposes an interactive
+    # in-browser Python console on unhandled errors -- remote code
+    # execution if that page is ever reachable outside your own machine.
+    return os.environ.get("FLASK_DEBUG", "0") == "1"
+
+
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run(debug=is_debug_mode())
