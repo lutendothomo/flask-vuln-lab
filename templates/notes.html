@@ -10,6 +10,7 @@
 
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input name="title" placeholder="Title" required>
     <textarea name="body" placeholder="Write a note..." required></textarea>
     <button type="submit">Add note</button>
