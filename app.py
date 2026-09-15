@@ -1,14 +1,20 @@
+import os
 import sqlite3
 from flask import Flask, request, render_template, redirect, url_for, session, g
 from flask_wtf import CSRFProtect
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = "dev"  # VULN: hardcoded secret key — fix with an env var later
+app.secret_key = os.environ.get("SECRET_KEY", "dev-only-fallback-do-not-use-in-production")
 
 # FIX: CSRF protection enabled globally — forms must now include a valid
 # csrf_token or their POST requests will be rejected with a 400 error.
 csrf = CSRFProtect(app)
+
+# FIX: rate limiting on login to slow down brute-force attempts.
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
 
 DB_PATH = "vuln.db"
 
@@ -70,6 +76,7 @@ def register():
 
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute")  # FIX: throttles repeated login attempts
 def login():
     if request.method == "POST":
         username = request.form["username"]
