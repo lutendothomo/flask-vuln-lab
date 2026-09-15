@@ -1,6 +1,7 @@
 import sqlite3
 from flask import Flask, request, render_template, redirect, url_for, session, g
 from flask_wtf import CSRFProtect
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.secret_key = "dev"  # VULN: hardcoded secret key — fix with an env var later
@@ -58,9 +59,11 @@ def home():
 def register():
     if request.method == "POST":
         username = request.form["username"]
-        password = request.form["password"]  # VULN: stored in plaintext, no hashing
+        password = request.form["password"]
+        # FIX: hash the password before it's ever stored
+        hashed = generate_password_hash(password)
         db = get_db()
-        db.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+        db.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
         db.commit()
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -72,11 +75,11 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
         db = get_db()
-        # FIX: parameterized query — closes the SQL injection that lived here
         user = db.execute(
-            "SELECT * FROM users WHERE username = ? AND password = ?", (username, password)
+            "SELECT * FROM users WHERE username = ?", (username,)
         ).fetchone()
-        if user:
+        # FIX: verify against the hash instead of comparing plaintext
+        if user and check_password_hash(user["password"], password):
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             return redirect(url_for("notes"))
