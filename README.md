@@ -18,8 +18,8 @@ flask-vuln-lab/
 │   └── bookings.html         # Bookings list, search, and add-booking form
 ├── static/
 │   └── style.css             # App styling
-├── scripts/
-│   └── fix.py                 # One-time patch script used while applying fixes
+|
+│                
 └── .gitignore                 # Excludes venv/, __pycache__/, vuln.db
 ```
 
