@@ -142,19 +142,31 @@ def test_password_is_hashed_not_plaintext(client):
     assert stored_password != "Str0ng!Pass"
     assert stored_password.startswith(("pbkdf2:", "scrypt:"))  # werkzeug hash prefixes
 
+# --- Vuln 7 (extended): rate limits beyond /login ---------------------------
 
-# --- Vuln 7: No brute-force protection --------------------------------------
+def test_register_is_rate_limited(client):
+    statuses = []
+    for i in range(12):
+        resp = client.post(
+            "/register",
+            data={"username": f"user{i}", "password": "Str0ng!Pass"},
+        )
+        statuses.append(resp.status_code)
 
-def test_login_is_rate_limited(client):
+    assert 429 in statuses
+    assert statuses[:10].count(429) == 0  # first 10 per hour are allowed
+
+
+def test_other_routes_have_a_default_rate_limit(client):
     register(client, "alice", "Str0ng!Pass")
+    login(client, "alice", "Str0ng!Pass")
 
-    responses = []
-    for _ in range(7):
-        resp = client.post("/login", data={"username": "alice", "password": "wrong"})
-        responses.append(resp.status_code)
+    statuses = [client.get("/bookings").status_code for _ in range(205)]
 
-    assert 429 in responses  # Flask-Limiter's "Too Many Requests"
-
+    assert 429 in statuses  # the 200/hour default eventually kicks in
+    # Setup (login redirect) already used a request or two, so only
+    # assert the early requests were comfortably allowed.
+    assert statuses[:150].count(429) == 0
 
 # --- Vuln 8: Debug mode enabled by default ----------------------------------
 

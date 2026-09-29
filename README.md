@@ -75,7 +75,8 @@ holds, rather than just claiming it in this README:
 | `test_xss_payload_in_notes_is_escaped` | Vuln 3 fix -- `<script>` in booking notes renders as escaped text, not executable markup |
 | `test_post_without_csrf_token_is_rejected` | Vuln 4 fix -- state-changing POSTs without a valid CSRF token are rejected |
 | `test_password_is_hashed_not_plaintext` | Vuln 5 fix -- stored passwords are hashed, never plaintext |
-| `test_login_is_rate_limited` | Vuln 7 fix -- repeated login attempts get rate-limited |
+| `test_register_is_rate_limited` | Vuln 7 fix -- account creation is throttled after 10 requests/hour |
+| `test_other_routes_have_a_default_rate_limit` | Vuln 7 fix -- routes without a specific limit still hit the 200/hour default |
 | `test_debug_mode_is_off_unless_env_var_set` | Vuln 8 fix -- debug mode stays off unless explicitly enabled |
 
 (Vuln 6, the hardcoded secret key, isn't covered here since it's a
@@ -92,7 +93,7 @@ runtime.)
 | 4 | Missing CSRF protection | all POST forms | Fixed -- Flask-WTF `CSRFProtect` |
 | 5 | Plaintext password storage | `register()` / `login()` | Fixed -- hashed with Werkzeug |
 | 6 | Hardcoded secret key | `app.secret_key` | Fixed -- read from environment |
-| 7 | No brute-force protection | `login()` | Fixed -- rate limited to 5/min |
+| 7 | No brute-force / abuse protection | `login()`, `register()`, all routes | Fixed -- login 5/min, register 10/hour, 200/hour default elsewhere |
 | 8 | Debug mode enabled by default | `app.run()` | Fixed -- driven by `FLASK_DEBUG` env var, off unless set |
 
 ### 1 & 2 -- SQL injection
@@ -194,13 +195,18 @@ sessions.
 with a clearly-labeled dev-only fallback so the app still runs locally
 without extra setup.
 
-### 7 -- No brute-force protection
+### 7 -- No brute-force or abuse protection
 
-**The flaw.** The login endpoint accepted unlimited attempts per second,
-making automated password guessing practical.
+**The flaw.** No endpoint had any rate limit. The login form accepted
+unlimited guesses per second, `/register` allowed unlimited account
+creation, and every other route could be hammered freely.
 
-**Fix.** `Flask-Limiter` now caps `/login` at 5 attempts per minute per IP
-address.
+**Fix.** `Flask-Limiter` now enforces three tiers per IP address:
+`/login` is capped at 5 attempts per minute, `/register` at 10 per hour,
+and every other route falls back to a 200-per-hour default. Counters are
+held in memory, so they reset on restart and are tracked per worker
+process -- a shared store such as Redis would be the production answer.
+
 
 ### 8 -- Debug mode enabled by default
 
