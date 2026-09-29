@@ -47,8 +47,10 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-only-fallback-do-not-use-in-p
 # csrf_token or their POST requests will be rejected with a 400 error.
 csrf = CSRFProtect(app)
 
-# FIX: rate limiting on login to slow down brute-force attempts.
-limiter = Limiter(key_func=get_remote_address, app=app, default_limits=[])
+# FIX: rate limiting. /login has a strict per-route limit (below); every
+# other route falls back to a generous global default so no endpoint is
+# completely unthrottled.
+limiter = Limiter(key_func=get_remote_address, app=app, default_limits=["200 per hour"])
 
 
 # FIX: basic security headers on every response.
@@ -110,6 +112,7 @@ def home():
 
 
 @app.route("/register", methods=["GET", "POST"])
+@limiter.limit("10 per hour")  # FIX: stops mass account creation
 def register():
     if request.method == "POST":
         username = request.form["username"].strip()
