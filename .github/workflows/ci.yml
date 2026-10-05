@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest
+      - name: Run security regression tests
+        env:
+          SECRET_KEY: ci-only-not-a-real-secret
+        run: python -m pytest test_security.py -v
+
+  audit:
+    runs-on: ubuntu-latest
+    # Reports findings without turning the CI badge red when a new CVE lands.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Dependency CVE scan (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt
+      - name: Static analysis (bandit)
+        run: |
+          pip install bandit
+          bandit -r . -x ./test_security.py,./venv -ll
