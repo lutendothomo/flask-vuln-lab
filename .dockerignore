@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+vuln.db
+.git/
+.github/
+test_security.py
+requirements-dev.txt
+README.md
