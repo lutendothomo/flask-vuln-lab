@@ -198,3 +198,5 @@ Pinned versions were first checked by hand against public CVE records. `pip-audi
 - **Rate limits are in memory.** Counters reset on restart and are tracked per worker process. A shared store such as Redis would be the production answer.
 - **The secret-key fallback is still a weakness.** The dev-only fallback keeps the app runnable locally, but a production deployment should fail to start if `SECRET_KEY` is unset.
 - **This is a learning project, not a hardened product.** It runs on Flask's development server and is not intended to be deployed.
+
+#and "luthoec025" as co authour
