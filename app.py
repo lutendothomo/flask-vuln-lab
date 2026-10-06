@@ -31,17 +31,41 @@ def validate_password(password):
     return None
 
 
-app = Flask(__name__)
+def is_debug_mode():
+    # FIX (vuln #8): debug mode must be explicitly opted into via an env
+    # var, never hardcoded True. Flask's debug mode exposes an interactive
+    # in-browser Python console on unhandled errors -- remote code
+    # execution if that page is ever reachable outside your own machine.
+    return os.environ.get("FLASK_DEBUG", "0") == "1"
 
-# FIX: harden session cookie settings. SECURE is tied to whether SECRET_KEY
-# is set via env var, so it's off for local dev (plain HTTP) and on once
-# deployed with a real secret key (which implies HTTPS in front of it).
+
+def load_secret_key():
+    # FIX (vuln #6, hardened): no hardcoded fallback. The app refuses to
+    # start without a real key; local development opts out explicitly
+    # with FLASK_DEBUG=1.
+    secret = os.environ.get("SECRET_KEY")
+    if secret:
+        return secret
+    if is_debug_mode():
+        return "dev-only-insecure-key"
+    raise RuntimeError(
+        "SECRET_KEY is not set. Set it to a long random value "
+        "(python -c \"import secrets; print(secrets.token_hex(32))\"), "
+        "or set FLASK_DEBUG=1 for local development only."
+    )
+
+
+app = Flask(__name__)
+app.secret_key = load_secret_key()
+
+# FIX: harden session cookie settings. SECURE is on by default (it needs
+# HTTPS) and is switched off only in local debug mode, or explicitly with
+# COOKIE_SECURE=0 when testing over plain http://127.0.0.1.
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("SECRET_KEY") is not None,
+    SESSION_COOKIE_SECURE=os.environ.get("COOKIE_SECURE", "0" if is_debug_mode() else "1") == "1",
 )
-app.secret_key = os.environ.get("SECRET_KEY", "dev-only-fallback-do-not-use-in-production")
 
 # FIX: CSRF protection enabled globally — forms must now include a valid
 # csrf_token or their POST requests will be rejected with a 400 error.
@@ -58,7 +82,9 @@ limiter = Limiter(key_func=get_remote_address, app=app, default_limits=["200 per
 def set_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+    )
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
@@ -231,14 +257,6 @@ def update_status(booking_id):
     )
     db.commit()
     return redirect(url_for("bookings"))
-
-
-def is_debug_mode():
-    # FIX (vuln #8): debug mode must be explicitly opted into via an env
-    # var, never hardcoded True. Flask's debug mode exposes an interactive
-    # in-browser Python console on unhandled errors -- remote code
-    # execution if that page is ever reachable outside your own machine.
-    return os.environ.get("FLASK_DEBUG", "0") == "1"
 
 
 if __name__ == "__main__":
