@@ -4,6 +4,8 @@ TRACKER = WTC-R2UJGZUS
 
 [![CI](https://github.com/lutendothomo/flask-vuln-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/lutendothomo/flask-vuln-lab/actions)
 
+   > ⚠️ The `v0-vulnerable` tag is intentionally insecure. Run it locally only and never deploy or expose it.
+
 A small Flask booking app, deliberately built with real security flaws, then exploited and patched one at a time: a hands-on OWASP Top 10 walkthrough.
 
 **Stack:** Python · Flask · SQLite · Flask-WTF · Flask-Limiter · pytest · GitHub Actions
