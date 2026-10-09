@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="card">
+<div class="card card--auth">
   <h1>Register</h1>
 
   {% if error %}
@@ -34,16 +34,17 @@
            required>
 
     <!-- Password requirements -->
-    <p class="hint">Password requirements:</p>
-
-    <ul class="hint">
-      <li>5-64 characters</li>
-      <li>At least one uppercase letter</li>
-      <li>At least one lowercase letter</li>
-      <li>At least one number</li>
-      <li>At least one special character</li>
-      <li>Spaces are not allowed</li>
-    </ul>
+    <div class="requirements">
+      <p class="hint">Password requirements</p>
+      <ul class="hint">
+        <li>5-64 characters</li>
+        <li>At least one uppercase letter</li>
+        <li>At least one lowercase letter</li>
+        <li>At least one number</li>
+        <li>At least one special character</li>
+        <li>Spaces are not allowed</li>
+      </ul>
+    </div>
 
     <button type="submit">Register</button>
   </form>
