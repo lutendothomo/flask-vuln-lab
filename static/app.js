@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 6000);
   });
 
-  // Initialize theme
+  
   initTheme();
 });
 

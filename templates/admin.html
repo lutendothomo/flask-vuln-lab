@@ -192,7 +192,7 @@
                 <button type="submit" class="btn-primary-small">Update Status</button>
               </form>
 
-              <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking['id']) }}" onsubmit="return confirm('Admin confirm: Delete shipment #TRK-{{ '%04d' % booking['id'] }}?')">
+              <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking['id']) }}" data-confirm="Admin confirm: Delete shipment #TRK-{{ '%04d' % booking['id'] }}?" onsubmit="return confirm(this.getAttribute('data-confirm'))">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-action-delete" title="Delete record as Admin">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -213,9 +213,9 @@
     {% endif %}
   </div>
 
-  <!-- =========================================================================
+  
        Registered Clients Directory
-       ========================================================================= -->
+     
   <div class="admin-section clients-roster-section" id="clients-roster">
     <div class="manifest-header">
       <div class="manifest-title-wrap">
