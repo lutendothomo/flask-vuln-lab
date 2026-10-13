@@ -10,7 +10,7 @@ TRACKER = WTC-R2UJGZUS
 
 ---
 
-## 🌟 Platform Highlights
+## Platform Highlights
 
 - **Distinct Dual Portals (RBAC):**
   - **Administrator Master Console (`/admin`):** Global fleet telemetry, system-wide revenue accounting in active currency, shipment deletion and status overrides, and a dedicated **Registered Clients Directory** featuring client account roles, total cargo shipments, and paid tariffs.
@@ -30,7 +30,7 @@ TRACKER = WTC-R2UJGZUS
 
 ---
 
-## 🚀 Quickstart & Setup
+## Quickstart & Setup
 
 ### 1. Environment & Dependencies
 
@@ -70,7 +70,7 @@ python3 -c "import app; app.init_db(); app.app.run(port=5000)"
 
 ### 3. Default Credentials & Role Switching
 
-- **Admin Account:** `admin` / `Str0ng!AdminPass1` (seeded automatically into database)
+
 - **Role Switcher:** When testing locally, click the role pill badge (`Admin` / `Customer`) in the navigation bar to instantaneously toggle between Customer Portal and Admin Console views.
 
 ---
@@ -107,7 +107,7 @@ docker run --rm -p 8000:8000 \
 
 ---
 
-## 🧪 Automated Test Suite
+##  Automated Test Suite
 
 Run the full pytest suite:
 
@@ -115,35 +115,9 @@ Run the full pytest suite:
 python -m pytest test_security.py -v
 ```
 
-All 17 automated regression and hardening tests pass:
 
-```text
-============================= test session starts =============================
-collected 17 items
 
-test_security.py::test_sql_injection_login_is_blocked[payload0] PASSED
-test_security.py::test_sql_injection_login_is_blocked[payload1] PASSED
-test_security.py::test_sql_injection_login_is_blocked[payload2] PASSED
-test_security.py::test_valid_login_reaches_bookings_page PASSED
-test_security.py::test_sql_injection_search_does_not_leak_other_users_bookings PASSED
-test_security.py::test_xss_payload_in_notes_is_escaped PASSED
-test_security.py::test_post_without_csrf_token_is_rejected PASSED
-test_security.py::test_password_is_hashed_not_plaintext PASSED
-test_security.py::test_app_refuses_to_start_without_secret_key PASSED
-test_security.py::test_debug_mode_allows_dev_key_and_non_secure_cookie PASSED
-test_security.py::test_register_is_rate_limited PASSED
-test_security.py::test_other_routes_have_a_default_rate_limit PASSED
-test_security.py::test_debug_mode_is_off_unless_env_var_set PASSED
-test_security.py::test_session_cookie_is_secure_by_default PASSED
-test_security.py::test_session_cookie_has_httponly_and_samesite PASSED
-test_security.py::test_security_headers_are_present PASSED
-test_security.py::test_user_cannot_update_another_users_booking PASSED
-======================= 17 passed in 13.81s ========================
-```
-
----
-
-## 📂 Project Architecture
+## Project Architecture
 
 ```text
 flask-vuln-lab/
@@ -171,6 +145,6 @@ flask-vuln-lab/
 
 ---
 
-## 📜 License & Acknowledgments
+## License & Acknowledgments
 
 This project is open-source under the [MIT License](LICENSE). Built for educational security benchmarking and modern Python web application design.
