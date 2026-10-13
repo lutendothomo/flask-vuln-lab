@@ -1,56 +1,98 @@
 {% extends "base.html" %}
 
+{% block title %}Create Account — NARI Logistics Command Center{% endblock %}
+
 {% block content %}
-<div class="card">
-  <h1>Register</h1>
+<div class="auth-wrapper auth-buffalo-bg">
+  <!-- Subtle Buffalo Watermark in Background -->
+  <div class="buffalo-bg-art">
+    <img src="{{ url_for('static', filename='img/buffalo_full.png') }}" alt="" class="buffalo-watermark-dark" aria-hidden="true">
+    <img src="{{ url_for('static', filename='img/buffalo_full_dark.png') }}" alt="" class="buffalo-watermark-light" aria-hidden="true">
+  </div>
 
-  {% if error %}
-    <div class="error">{{ error }}</div>
-  {% endif %}
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-badge">
+        <span class="buffalo-emoji">🦬</span>
+        <span>Client Registration</span>
+      </div>
+      <h1>Create Dispatch Account</h1>
+      <p>Register to manage freight bookings, request cargo dispatch, and access manifests.</p>
+    </div>
 
-  <form method="post">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if error %}
+      <div class="alert alert-error">
+        <div class="alert-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <div class="alert-message">{{ error }}</div>
+      </div>
+    {% endif %}
 
-    <!-- Username -->
-    <input name="username"
-           placeholder="Username"
-           value="{{ username or '' }}"
-           minlength="3"
-           maxlength="20"
-           pattern="[A-Za-z][A-Za-z0-9_.]{2,19}"
-           title="3-20 characters, start with a letter, letters/numbers/underscore/period only"
-           autocomplete="username"
-           required>
+    <form method="post" action="{{ url_for('register') }}" class="auth-form" id="register-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-    <!-- Password -->
-    <input name="password"
-           type="password"
-           placeholder="Password"
-           minlength="5"
-           maxlength="64"
-           pattern="^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])[^\s]{5,64}$"
-           title="Password must be 5-64 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character. Spaces are not allowed."
-           autocomplete="new-password"
-           required>
+      <!-- Username -->
+      <div class="form-group">
+        <label for="reg-username">Username <span class="required">*</span></label>
+        <div class="input-with-icon">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          <input id="reg-username"
+                 name="username"
+                 placeholder="Choose a username"
+                 value="{{ username or '' }}"
+                 minlength="3"
+                 maxlength="20"
+                 pattern="[A-Za-z][A-Za-z0-9_.]{2,19}"
+                 title="3-20 characters, start with a letter, letters/numbers/underscore/period only"
+                 autocomplete="username"
+                 required
+                 autofocus>
+        </div>
+        <span class="field-hint">3-20 characters, must begin with a letter</span>
+      </div>
 
-    <!-- Password requirements -->
-    <p class="hint">Password requirements:</p>
+      <!-- Password -->
+      <div class="form-group">
+        <label for="reg-password">Password <span class="required">*</span></label>
+        <div class="input-with-icon password-wrap">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <input id="reg-password"
+                 name="password"
+                 type="password"
+                 placeholder="Choose a strong password"
+                 minlength="5"
+                 maxlength="64"
+                 pattern="^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9\s])[^\s]{5,64}$"
+                 title="Password must be 5-64 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character. Spaces are not allowed."
+                 autocomplete="new-password"
+                 required
+                 oninput="validatePasswordStrength(this.value)">
+          <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('reg-password', this)" title="Show/hide password" aria-label="Toggle password visibility">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
+      </div>
 
-    <ul class="hint">
-      <li>5-64 characters</li>
-      <li>At least one uppercase letter</li>
-      <li>At least one lowercase letter</li>
-      <li>At least one number</li>
-      <li>At least one special character</li>
-      <li>Spaces are not allowed</li>
-    </ul>
+      <!-- Interactive Password Requirements Checklist -->
+      <div class="password-checklist-card">
+        <div class="checklist-title">Password Security Requirements:</div>
+        <ul class="checklist-items">
+          <li id="req-length" class="req-item"><span class="req-icon">&bull;</span> 5 to 64 characters</li>
+          <li id="req-upper" class="req-item"><span class="req-icon">&bull;</span> At least one uppercase letter (A-Z)</li>
+          <li id="req-lower" class="req-item"><span class="req-icon">&bull;</span> At least one lowercase letter (a-z)</li>
+          <li id="req-num" class="req-item"><span class="req-icon">&bull;</span> At least one number (0-9)</li>
+          <li id="req-special" class="req-item"><span class="req-icon">&bull;</span> At least one special character (!@#$%^&*...)</li>
+          <li id="req-nospace" class="req-item"><span class="req-icon">&bull;</span> No spaces allowed</li>
+        </ul>
+      </div>
 
-    <button type="submit">Register</button>
-  </form>
+      <button type="submit" class="btn-primary-block">Complete Registration</button>
+    </form>
 
-  <p class="hint">
-    Already have an account?
-    <a href="{{ url_for('login') }}">Log in</a>
-  </p>
+    <div class="auth-footer">
+      <p>Already registered? <a href="{{ url_for('login') }}" class="link-highlight">Sign in here</a></p>
+    </div>
+  </div>
 </div>
 {% endblock %}

@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Administrator Master Console — NARI Logistics{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper admin-dashboard-wrapper">
+  <!-- Admin Top Bar -->
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <div class="admin-badge-indicator">
+        <span class="pulse-dot"></span>
+        <span>Global Admin Command Center</span>
+      </div>
+      <h1>Fleet Telemetry &amp; System Manifest</h1>
+      <p class="header-subtitle">
+        System Administrator: <strong>@{{ username }}</strong> &bull; Complete administrative oversight of all client bookings, carrier dispatches, and billing across the platform.
+      </p>
+    </div>
+    <div class="dashboard-actions">
+      <a href="{{ url_for('bookings') }}" class="btn-role-switch" title="Navigate to Customer Portal view">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+        <span>Customer Portal</span>
+      </a>
+      <a href="{{ url_for('export_bookings') }}" class="btn-secondary" title="Export master manifest to CSV">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        <span>Export Master CSV</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Global Admin Metrics -->
+  <div class="kpi-grid">
+    <div class="kpi-card admin-kpi-card">
+      <div class="kpi-icon-wrap icon-purple">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-number">{{ stats.total_bookings }}</div>
+        <div class="kpi-title">Global Shipments</div>
+      </div>
+    </div>
+
+    <div class="kpi-card admin-kpi-card">
+      <div class="kpi-icon-wrap icon-lilac">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-number">{{ stats.in_transit }}</div>
+        <div class="kpi-title">In Transit Globally</div>
+      </div>
+    </div>
+
+    <div class="kpi-card admin-kpi-card">
+      <div class="kpi-icon-wrap icon-pink">
+        <span class="kpi-curr-symbol">{{ currency_info.symbol }}</span>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-number">{{ format_money(stats.total_revenue) }}</div>
+        <div class="kpi-title">Platform Revenue (Paid) • {{ current_currency }}</div>
+      </div>
+    </div>
+
+    <div class="kpi-card admin-kpi-card">
+      <div class="kpi-icon-wrap icon-orchid">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div class="kpi-data">
+        <div class="kpi-number">{{ stats.total_users }}</div>
+        <div class="kpi-title">Registered Clients</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Controls -->
+  <div class="filter-bar admin-filter-bar">
+    <form method="get" action="{{ url_for('admin_dashboard') }}" class="search-form-flex">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input name="q" placeholder="Search by client, hub, destination, or @username..." value="{{ search }}" autocomplete="off">
+        {% if search %}
+          <a href="{{ url_for('admin_dashboard') }}" class="clear-search" title="Clear search">&times;</a>
+        {% endif %}
+      </div>
+
+      <div class="filter-select-wrap">
+        <select name="status" onchange="this.form.submit()">
+          <option value="">All Delivery Statuses</option>
+          {% for st in ["Pending Dispatch", "In Transit", "Delivered", "Delayed"] %}
+            <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ st }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="filter-select-wrap">
+        <select name="payment" onchange="this.form.submit()">
+          <option value="">All Payments</option>
+          {% for pt in ["Pending", "Paid", "Refunded"] %}
+            <option value="{{ pt }}" {% if payment_filter == pt %}selected{% endif %}>{{ pt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn-primary-small">Filter</button>
+    </form>
+
+    {% if search or status_filter or payment_filter %}
+      <div class="active-filters">
+        <span>Active Filters:</span>
+        {% if search %}
+          <span class="filter-tag">Query: "{{ search }}" <a href="{{ url_for('admin_dashboard', status=status_filter, payment=payment_filter) }}">&times;</a></span>
+        {% endif %}
+        {% if status_filter %}
+          <span class="filter-tag">Status: {{ status_filter }} <a href="{{ url_for('admin_dashboard', q=search, payment=payment_filter) }}">&times;</a></span>
+        {% endif %}
+        {% if payment_filter %}
+          <span class="filter-tag">Payment: {{ payment_filter }} <a href="{{ url_for('admin_dashboard', q=search, status=status_filter) }}">&times;</a></span>
+        {% endif %}
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-text-small">Reset Filters</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Master Admin Manifest Table -->
+  <div class="admin-table-container">
+    <div class="manifest-header-bar">
+      <span>Master Dispatch Roster &bull; {{ bookings|length }} Shipment{% if bookings|length != 1 %}s{% endif %} Logged</span>
+    </div>
+
+    {% if bookings %}
+      <div class="admin-manifest-cards">
+        {% for booking in bookings %}
+          <div class="admin-booking-item">
+            <div class="admin-item-header">
+              <div class="item-ref-group">
+                <span class="ref-code">#TRK-{{ "%04d" % booking['id'] }}</span>
+                <span class="user-owner-tag">Client: <strong>@{{ booking['owner_username'] }}</strong></span>
+                <a href="{{ url_for('track', id=booking['id']) }}" class="track-link" title="Open radar">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                  <span>Radar</span>
+                </a>
+              </div>
+              <div class="item-cost-badge">
+                <span class="cost-label">Freight Value:</span>
+                <span class="cost-amount">{{ format_money(booking['amount']) }}</span>
+              </div>
+            </div>
+
+            <div class="admin-item-body">
+              <div class="admin-route-preview">
+                <div class="admin-route-point">
+                  <span class="point-tag">From</span>
+                  <span class="point-val">{{ booking['pickup_location'] }}</span>
+                </div>
+                <span class="route-arrow-icon">&rarr;</span>
+                <div class="admin-route-point">
+                  <span class="point-tag">To</span>
+                  <span class="point-val">{{ booking['delivery_location'] }}</span>
+                </div>
+              </div>
+
+              <div class="admin-meta-row">
+                <span>Consignee: <strong>{{ booking['client_name'] }}</strong></span>
+                {% if booking['notes'] %}
+                  <span class="admin-notes-snippet">&bull; Notes: {{ booking['notes'] }}</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Admin Status Override Controls -->
+            <div class="admin-item-actions">
+              <form method="post" action="{{ url_for('admin_update_status', booking_id=booking['id']) }}" class="admin-quick-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="admin-select-field">
+                  <label>Payment</label>
+                  <select name="payment_status">
+                    {% for status in ["Pending", "Paid", "Refunded"] %}
+                      <option value="{{ status }}" {% if booking["payment_status"] == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="admin-select-field">
+                  <label>Transit Milestone</label>
+                  <select name="delivery_status">
+                    {% for status in ["Pending Dispatch", "In Transit", "Delivered", "Delayed"] %}
+                      <option value="{{ status }}" {% if booking["delivery_status"] == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <button type="submit" class="btn-primary-small">Update Status</button>
+              </form>
+
+              <form method="post" action="{{ url_for('admin_delete_booking', booking_id=booking['id']) }}" onsubmit="return confirm('Admin confirm: Delete shipment #TRK-{{ '%04d' % booking['id'] }}?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-action-delete" title="Delete record as Admin">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  <span>Remove</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-card">
+        <div class="empty-icon">🛡️</div>
+        <h3>No Administrative Records Found</h3>
+        <p>No shipments match your search or filter parameters across the database.</p>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn-primary">View All Shipments</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- =========================================================================
+       Registered Clients Directory
+       ========================================================================= -->
+  <div class="admin-section clients-roster-section" id="clients-roster">
+    <div class="manifest-header">
+      <div class="manifest-title-wrap">
+        <h2>Registered Clients Directory</h2>
+        <span class="manifest-counter">{{ clients|length }} Active Account{% if clients|length != 1 %}s{% endif %}</span>
+      </div>
+      <div class="manifest-actions">
+        <span class="badge-client-role">Role-Based Access Control (RBAC)</span>
+      </div>
+    </div>
+
+    <div class="clients-table-card">
+      <table class="clients-roster-table">
+        <thead>
+          <tr>
+            <th>Client User</th>
+            <th>Account Role</th>
+            <th>Member Since</th>
+            <th>Shipments Logged</th>
+            <th>Paid Freight ({{ current_currency }})</th>
+            <th>Total Cargo Booked</th>
+            <th>Last Activity</th>
+            <th>Quick Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for client in clients %}
+            <tr>
+              <td>
+                <div class="client-user-cell">
+                  <div class="client-avatar">{{ client['username'][0]|upper }}</div>
+                  <div class="client-info">
+                    <span class="client-uname">@{{ client['username'] }}</span>
+                    <span class="client-uid">ID #USR-{{ "%03d" % client['id'] }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                {% if client['is_admin'] %}
+                  <span class="role-tag-admin">Administrator</span>
+                {% else %}
+                  <span class="role-tag-user">Customer Client</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="date-text">{{ client['created_at'] or 'System Seeded' }}</span>
+              </td>
+              <td>
+                <span class="shipment-count-pill">{{ client['total_shipments'] }} Shipment{% if client['total_shipments'] != 1 %}s{% endif %}</span>
+              </td>
+              <td>
+                <span class="client-paid-val">{{ format_money(client['paid_revenue']) }}</span>
+              </td>
+              <td>
+                <span class="client-booked-val">{{ format_money(client['total_freight_booked']) }}</span>
+              </td>
+              <td>
+                <span class="date-text">{{ client['last_booking_at'] or 'No shipments yet' }}</span>
+              </td>
+              <td>
+                <div class="client-action-buttons">
+                  <a href="{{ url_for('admin_dashboard', q=client['username']) }}" class="btn-client-filter" title="Filter shipments by this user">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <span>View Cargo</span>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

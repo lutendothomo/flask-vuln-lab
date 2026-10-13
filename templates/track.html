@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Track Shipment — NARI Logistics{% endblock %}
+
+{% block content %}
+<div class="tracker-page-container">
+  <div class="tracker-header">
+    <div class="tracker-badge">Global Freight Radar</div>
+    <h1>Live Shipment Telemetry</h1>
+    <p>Enter your cargo reference or booking number to view current transit milestones and dispatch status.</p>
+
+    <!-- Search Form -->
+    <form action="{{ url_for('track') }}" method="get" class="tracker-search-form">
+      <div class="search-input-box">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" name="id" placeholder="Enter reference number (e.g. TRK-0001 or 1)..." value="{{ query }}" required autofocus autocomplete="off">
+      </div>
+      <button type="submit" class="btn-primary">Track</button>
+    </form>
+  </div>
+
+  {% if searched %}
+    {% if booking %}
+      <div class="tracking-result-card">
+        <!-- Result Header -->
+        <div class="result-header">
+          <div class="result-ref">
+            <span class="ref-label">Cargo Manifest Ref:</span>
+            <span class="ref-code">#TRK-{{ "%04d" % booking['id'] }}</span>
+            <button type="button" class="btn-copy" data-code="TRK-{{ '%04d' % booking['id'] }}" onclick="copyTrackingCode(this.getAttribute('data-code'))" title="Copy tracking ID">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="result-statuses">
+            <span class="badge badge-payment-{{ booking['payment_status']|lower }}">{{ booking['payment_status'] }}</span>
+            <span class="badge badge-delivery-{{ booking['delivery_status']|lower|replace(' ', '-') }}">{{ booking['delivery_status'] }}</span>
+          </div>
+        </div>
+
+        <!-- Visual Multi-step Timeline -->
+        <div class="shipment-timeline">
+          <!-- Step 1: Placed -->
+          <div class="timeline-step completed">
+            <div class="step-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            <div class="step-title">Order Placed</div>
+            <div class="step-time">Manifest Generated</div>
+          </div>
+
+          <!-- Step 2: Pending Dispatch -->
+          <div class="timeline-step {% if booking['delivery_status'] in ['Pending Dispatch', 'In Transit', 'Delivered'] %}completed{% endif %}">
+            <div class="step-icon">
+              {% if booking['delivery_status'] in ['In Transit', 'Delivered'] %}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              {% elif booking['delivery_status'] == 'Pending Dispatch' %}
+                <span class="step-dot-active"></span>
+              {% else %}
+                <span class="step-dot"></span>
+              {% endif %}
+            </div>
+            <div class="step-title">Warehouse Dispatch</div>
+            <div class="step-time">Inspection &amp; Staging</div>
+          </div>
+
+          <!-- Step 3: In Transit -->
+          <div class="timeline-step {% if booking['delivery_status'] == 'Delivered' %}completed{% elif booking['delivery_status'] == 'In Transit' %}active{% endif %}">
+            <div class="step-icon">
+              {% if booking['delivery_status'] == 'Delivered' %}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              {% elif booking['delivery_status'] == 'In Transit' %}
+                <span class="step-dot-active"></span>
+              {% else %}
+                <span class="step-dot"></span>
+              {% endif %}
+            </div>
+            <div class="step-title">In Transit</div>
+            <div class="step-time">Cross-Border Hubs</div>
+          </div>
+
+          <!-- Step 4: Delivered -->
+          <div class="timeline-step {% if booking['delivery_status'] == 'Delivered' %}completed{% endif %}">
+            <div class="step-icon">
+              {% if booking['delivery_status'] == 'Delivered' %}
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              {% else %}
+                <span class="step-dot"></span>
+              {% endif %}
+            </div>
+            <div class="step-title">Final Delivery</div>
+            <div class="step-time">Recipient Confirmation</div>
+          </div>
+        </div>
+
+        <!-- Route & Details Grid -->
+        <div class="details-grid">
+          <div class="detail-block route-block">
+            <div class="block-label">Route Itinerary</div>
+            <div class="route-display">
+              <div class="route-node">
+                <span class="node-indicator origin"></span>
+                <div class="node-meta">
+                  <span class="node-tag">Pickup Origin</span>
+                  <span class="node-location">{{ booking['pickup_location'] }}</span>
+                </div>
+              </div>
+              <div class="route-connector">
+                <span class="connector-line"></span>
+                <span class="connector-plane">✈</span>
+              </div>
+              <div class="route-node">
+                <span class="node-indicator destination"></span>
+                <div class="node-meta">
+                  <span class="node-tag">Final Destination</span>
+                  <span class="node-location">{{ booking['delivery_location'] }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-block">
+            <div class="block-label">Consignee / Client</div>
+            <div class="block-value">{{ booking['client_name'] }}</div>
+          </div>
+
+          <div class="detail-block">
+            <div class="block-label">Freight Value &amp; Tariff</div>
+            <div class="block-value amount-highlight">{{ format_money(booking['amount']) }}</div>
+          </div>
+
+          <div class="detail-block">
+            <div class="block-label">Payment Verification</div>
+            <div class="block-value">
+              <span class="badge badge-payment-{{ booking['payment_status']|lower }}">{{ booking['payment_status'] }}</span>
+            </div>
+          </div>
+
+          {% if booking['notes'] %}
+            <div class="detail-block full-width">
+              <div class="block-label">Special Handling &amp; Cargo Notes</div>
+              <div class="block-notes">{{ booking['notes'] }}</div>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="result-actions">
+          <button type="button" class="btn-secondary" onclick="window.print()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>Print Manifest</span>
+          </button>
+          <a href="{{ url_for('track') }}" class="btn-text">Track Another Parcel</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="tracking-not-found-card">
+        <div class="not-found-icon">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        </div>
+        <h2>No Active Record for "{{ query }}"</h2>
+        <p>We could not locate an active freight booking matching this identifier. Please verify the tracking number or contact your dispatch manager.</p>
+        <a href="{{ url_for('track') }}" class="btn-primary">Try Another Reference</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="tracker-tips-card">
+      <div class="tips-grid">
+        <div class="tip-item">
+          <div class="tip-icon">📦</div>
+          <h4>Instant Lookups</h4>
+          <p>Tracking references are assigned automatically upon booking creation (e.g. TRK-0001).</p>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🛡️</div>
+          <h4>Confidential Telemetry</h4>
+          <p>Package status is publicly verifiable while preserving sensitive account credentials.</p>
+        </div>
+        <div class="tip-item">
+          <div class="tip-icon">🌐</div>
+          <h4>Multi-Modal Transit</h4>
+          <p>Real-time updates across air, ground, and sea forwarding routes.</p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
